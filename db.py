@@ -1,16 +1,9 @@
+import utils
+
 from datetime import datetime
 from os import getenv
 import sqlalchemy
 from sqlmodel import Field, SQLModel, create_engine
-
-
-def read_secret(secret: str) -> str | None:
-    try:
-        with open(f"secrets/{secret}") as file:
-            return file.read()
-    except OSError:
-        print("File not found")
-        return None
 
 
 class User(SQLModel, table=True):
@@ -52,8 +45,8 @@ class TaskLog(SQLModel, table=True):
 engine = create_engine(
     sqlalchemy.URL.create(
         drivername="postgresql",
-        username=read_secret("POSTGRES_USER"),
-        password=read_secret("POSTGRES_PASSWORD"),
+        username=utils.read_secret("POSTGRES_USER"),
+        password=utils.read_secret("POSTGRES_PASSWORD"),
         database=getenv("POSTGRES_DB"),
         host="db",
         port=5432,
@@ -64,4 +57,3 @@ engine = create_engine(
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
-
