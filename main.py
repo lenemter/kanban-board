@@ -1,7 +1,10 @@
+import db
 import dotenv
 import fastapi
 
 dotenv.load_dotenv()
+
+db.create_db_and_tables()
 
 app = fastapi.FastAPI()
 
