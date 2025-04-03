@@ -18,6 +18,7 @@ services:
     secrets:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
+      - SECRET_KEY
     environment:
       POSTGRES_USER_FILE: /run/secrets/POSTGRES_USER
       POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_PASSWORD
@@ -31,3 +32,5 @@ secrets:
     file: ./secrets/POSTGRES_USER
   POSTGRES_PASSWORD:
     file: ./secrets/POSTGRES_PASSWORD
+  SECRET_KEY:
+    file: ./secrets/SECRET_KEY
