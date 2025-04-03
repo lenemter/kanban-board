@@ -6,7 +6,8 @@ services:
     volumes:
       - .:/api
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:17.4
@@ -23,6 +24,11 @@ services:
       POSTGRES_USER_FILE: /run/secrets/POSTGRES_USER
       POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_PASSWORD
       POSTGRES_DB: api_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+      timeout: 3s
 
 volumes:
   postgres_data:
