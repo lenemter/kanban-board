@@ -1,3 +1,5 @@
+HASH_ALGORITHM = "HS256"
+
 secrets_cache: dict[str, str] = dict()
 
 
