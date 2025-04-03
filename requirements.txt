@@ -1,5 +1,5 @@
 fastapi[standard]
-passlib[bcrypt]
+bcrypt
 psycopg2-binary
 pyjwt
 python-dotenv
