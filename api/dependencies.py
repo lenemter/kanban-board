@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 import api.db
 
@@ -47,3 +47,44 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> api
 
 
 CurrentUserDep = Annotated[api.db.UserFromDB, Depends(get_current_user)]
+
+# -- Board ---
+
+
+def owner_get_board(board_id: int, current_user: CurrentUserDep, session: SessionDep) -> api.db.Board:
+    board = session.get(api.db.Board, board_id)
+    if board is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Board not found")
+    if board.owner_id != current_user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not enough permissions")
+
+    return board
+
+
+def check_user_access(user: api.db.UserFromDB, board: api.db.Board) -> bool:
+    if board.owner_id == user.id:
+        return True
+
+    with Session(api.db.engine) as session:
+        board_user_access = session.exec(
+            select(api.db.BoardUserAccess).where(
+                api.db.BoardUserAccess.board_id == board.id,
+                api.db.BoardUserAccess.user_id == user.id
+            )
+        ).first()
+
+        return board_user_access is not None
+
+
+def user_get_board(board_id: int, current_user: CurrentUserDep, session: SessionDep) -> api.db.Board:
+    board = session.get(api.db.Board, board_id)
+    if board is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Board not found")
+    if not check_user_access(current_user, board):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not enough permissions")
+
+    return board
+
+
+BoardOwnerDep = Annotated[api.db.Board, Depends(owner_get_board)]
+BoardUserDep = Annotated[api.db.Board, Depends(user_get_board)]
