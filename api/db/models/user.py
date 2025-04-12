@@ -11,8 +11,12 @@ class User(UserBase, table=True):
     hashed_password: str = Field()
 
 
+class UserFromDB(User):
+    id: int
+
+
 class UserPublic(UserBase):
-    username: str
+    id: int
 
 
 class UserCreate(UserBase):
@@ -20,5 +24,6 @@ class UserCreate(UserBase):
     password: str
 
 
-class UserUpdate(UserBase):
-    password: str
+class UserUpdate(SQLModel):
+    name: str | None = None
+    password: str | None = None

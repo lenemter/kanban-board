@@ -19,5 +19,5 @@ class BoardCreate(BoardBase):
     pass
 
 
-class BoardUpdate(BoardBase):
-    pass
+class BoardUpdate(SQLModel):
+    name: str | None = None

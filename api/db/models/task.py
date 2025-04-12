@@ -19,5 +19,6 @@ class TaskCreate(TaskBase):
     pass
 
 
-class TaskUpdate(TaskBase):
-    pass
+class TaskUpdate(SQLModel):
+    name: str | None = None
+    description: str | None = None

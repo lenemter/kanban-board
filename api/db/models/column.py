@@ -19,5 +19,6 @@ class ColumnCreate(ColumnBase):
     pass
 
 
-class ColumnUpdate(ColumnBase):
-    pass
+class ColumnUpdate(SQLModel):
+    position: int | None = None
+    name: str | None = None
