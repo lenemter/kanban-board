@@ -88,3 +88,29 @@ def user_get_board(board_id: int, current_user: CurrentUserDep, session: Session
 
 BoardOwnerDep = Annotated[api.db.Board, Depends(owner_get_board)]
 BoardUserDep = Annotated[api.db.Board, Depends(user_get_board)]
+
+# --- Column ---
+
+
+def get_column(_board: BoardUserDep, column_id: int, session: SessionDep) -> api.db.Column:
+    column = session.get(api.db.Column, column_id)
+    if column is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Column not found")
+
+    return column
+
+
+ColumnDep = Annotated[api.db.Column, Depends(get_column)]
+
+# --- Task ---
+
+
+def get_task(_column: ColumnDep, task_id: int, session: SessionDep) -> api.db.Task:
+    task = session.get(api.db.Task, task_id)
+    if task is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
+
+    return task
+
+
+TaskDep = Annotated[api.db.Task, Depends(get_task)]
