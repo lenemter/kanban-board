@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
 import bcrypt
 import pydantic
-from sqlmodel import Session
 
 import api.db
+import api.dependencies
 import api.utils
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -39,20 +39,6 @@ def authenticate_user(username: str, password: str) -> api.db.User | None:
     return user
 
 
-def register_user(username: str, password: str, name: str) -> api.db.User | None:
-    if (api.db.get_user(username=username) is not None):
-        return None
-
-    new_user = api.db.User(username=username, hashed_password=get_password_hash(password), name=name)
-
-    with Session(api.db.engine) as session:
-        session.add(new_user)
-        session.commit()
-        session.refresh(new_user)
-
-    return new_user
-
-
 def create_access_token(data: dict, expires_delta: timedelta) -> Token:
     expire = datetime.now(timezone.utc) + expires_delta
 
@@ -81,15 +67,22 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    username: Annotated[str, Form()],
-    password: Annotated[str, Form()],
-    name: Annotated[str, Form()],
+    user_create: api.db.UserCreate,
+    session: api.dependencies.SessionDep,
 ) -> Token:
-    user = register_user(username, password, name)
-    if not user:
+    if api.db.get_user(username=user_create.username) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Username already taken")
 
+    new_user = api.db.User(
+        username=user_create.username,
+        hashed_password=get_password_hash(user_create.password),
+        name=user_create.name,
+    )
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
+
     return create_access_token(
-        data={"sub": user.username},
+        data={"sub": new_user.username},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
