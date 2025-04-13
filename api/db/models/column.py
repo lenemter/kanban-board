@@ -8,7 +8,7 @@ class ColumnBase(SQLModel):
 
 class Column(ColumnBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    board_id: int = Field(foreign_key="board.id")
+    board_id: int = Field(foreign_key="board.id", ondelete="CASCADE")
 
 
 class ColumnPublic(ColumnBase):

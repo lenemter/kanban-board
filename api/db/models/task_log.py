@@ -10,7 +10,7 @@ class TaskLogBase(SQLModel):
 
 class TaskLog(TaskLogBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    task_id: int = Field(foreign_key="task.id")
+    task_id: int = Field(foreign_key="task.id", ondelete="CASCADE")
 
 
 class TaskLogPublic(TaskLogBase):
