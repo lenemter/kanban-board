@@ -1,10 +1,24 @@
-from fastapi import APIRouter, status
-from sqlmodel import select
+from fastapi import APIRouter, HTTPException, status
+from sqlmodel import Session, select
 
 import api.db
 import api.dependencies
 
 router = APIRouter(tags=["columns"])
+
+
+def validate_arguments(board: api.db.Board, new_position: int, session: Session):
+    if new_position < 0:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Position must be greater or equal 0")
+
+    columns = session.exec(
+        select(api.db.Column)
+        .where(api.db.Column.board_id == board.id)
+    ).all()
+
+    for column in columns:
+        if column.position == new_position:
+            raise HTTPException(status.HTTP_409_CONFLICT, "This position is already taken")
 
 
 @router.get("/boards/{board_id}/columns/", response_model=list[api.db.ColumnPublic])
@@ -27,7 +41,7 @@ async def create_column(
     column_create: api.db.ColumnCreate,
     session: api.dependencies.SessionDep,
 ):
-    # TODO: validate position
+    validate_arguments(board, column_create.position, session)
 
     column = api.db.Column(board_id=board.id, **column_create.model_dump())
     session.add(column)
@@ -50,7 +64,12 @@ async def update_column(
     column_update: api.db.ColumnUpdate,
     session: api.dependencies.SessionDep,
 ):
-    # TODO: validate position
+    board = session.get(api.db.Board, column.board_id)
+    if board is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Internal Server Error")
+
+    if column_update.position is not None:
+        validate_arguments(board, column_update.position, session)
 
     column.sqlmodel_update(column_update.model_dump(exclude_unset=True))
     session.add(column)
@@ -66,62 +85,4 @@ async def delete_column(
     session: api.dependencies.SessionDep,
 ) -> None:
     session.delete(column)
-    session.commit()
-
-
-@router.get("/columns/{column_id}/tasks/", response_model=api.db.TaskPublic)
-async def get_tasks(
-    column: api.dependencies.ColumnDep,
-    session: api.dependencies.SessionDep,
-):
-    return list(
-        session.exec(
-            select(api.db.Task).where(
-                api.db.Task.column_id == column.id
-            )
-        ).all()
-    )
-
-
-@router.post("/columns/{column_id}/tasks/", status_code=status.HTTP_201_CREATED, response_model=api.db.TaskPublic)
-async def add_task(
-    column: api.dependencies.ColumnDep,
-    task_create: api.db.TaskCreate,
-    session: api.dependencies.SessionDep,
-):
-    task = api.db.Task(column_id=column.id, **task_create.model_dump())
-    session.add(task)
-    session.commit()
-    session.refresh(task)
-
-    return task
-
-
-@router.get("/columns/{column_id}/tasks/{task_id}", response_model=api.db.TaskPublic)
-async def get_task(
-    task: api.dependencies.TaskDep,
-):
-    return task
-
-
-@router.patch("/columns/{column_id}/tasks/{task_id}", response_model=api.db.TaskPublic)
-async def update_task(
-    task: api.dependencies.TaskDep,
-    task_update: api.db.TaskUpdate,
-    session: api.dependencies.SessionDep,
-):
-    task.sqlmodel_update(task_update.model_dump())
-    session.add(task)
-    session.commit()
-    session.refresh(task)
-
-    return task
-
-
-@router.delete("/columns/{column_id}/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task(
-    task: api.dependencies.TaskDep,
-    session: api.dependencies.SessionDep,
-):
-    session.delete(task)
     session.commit()
