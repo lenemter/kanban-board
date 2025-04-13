@@ -25,10 +25,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
 
 
-def get_password_hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-
 def authenticate_user(username: str, password: str) -> api.db.User | None:
     user = api.db.get_user(username)
     if not user:
@@ -75,7 +71,7 @@ async def register(
 
     new_user = api.db.User(
         username=user_create.username,
-        hashed_password=get_password_hash(user_create.password),
+        hashed_password=api.utils.get_password_hash(user_create.password),
         name=user_create.name,
     )
     session.add(new_user)

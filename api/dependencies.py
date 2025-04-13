@@ -22,7 +22,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> api.db.UserFromDB:
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> api.db.User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -43,10 +43,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> api
     if user.id is None:
         raise credentials_exception
 
-    return api.db.UserFromDB(**user.model_dump())
+    return user
 
 
-CurrentUserDep = Annotated[api.db.UserFromDB, Depends(get_current_user)]
+CurrentUserDep = Annotated[api.db.User, Depends(get_current_user)]
 
 # -- Board ---
 
@@ -61,7 +61,7 @@ def owner_get_board(board_id: int, current_user: CurrentUserDep, session: Sessio
     return board
 
 
-def check_user_access(user: api.db.UserFromDB, board: api.db.Board) -> bool:
+def check_user_access(user: api.db.User, board: api.db.Board) -> bool:
     if board.owner_id == user.id:
         return True
 

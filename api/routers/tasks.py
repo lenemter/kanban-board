@@ -26,7 +26,7 @@ def validate_new_assignee(board: api.db.Board, assignee_id: int, session: Sessio
     if assigned_user is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "This user doesn't exist")
 
-    if not api.dependencies.check_user_access(api.db.UserFromDB(**assigned_user.model_dump()), board):
+    if not api.dependencies.check_user_access(assigned_user, board):
         raise HTTPException(status.HTTP_409_CONFLICT, "This user doesn't have access to this board")
 
 

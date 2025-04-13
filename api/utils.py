@@ -1,3 +1,6 @@
+import bcrypt
+
+
 HASH_ALGORITHM = "HS256"
 
 secrets_cache: dict[str, str] = dict()
@@ -16,3 +19,7 @@ def read_secret(secret_name: str) -> str | None:
     except OSError:
         print("File not found")
         return None
+
+
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()

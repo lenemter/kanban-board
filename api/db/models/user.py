@@ -11,10 +11,6 @@ class User(UserBase, table=True):
     hashed_password: str = Field()
 
 
-class UserFromDB(User):
-    id: int
-
-
 class UserPublic(UserBase):
     id: int
 
