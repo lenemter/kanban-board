@@ -7,7 +7,7 @@ import api.dependencies
 router = APIRouter(tags=["columns"])
 
 
-def validate_arguments(board: api.db.Board, new_position: int, session: Session):
+def validate_position(board: api.db.Board, new_position: int, session: Session):
     if new_position < 0:
         raise HTTPException(status.HTTP_409_CONFLICT, "Position must be greater or equal 0")
 
@@ -41,7 +41,7 @@ async def create_column(
     column_create: api.db.ColumnCreate,
     session: api.dependencies.SessionDep,
 ):
-    validate_arguments(board, column_create.position, session)
+    validate_position(board, column_create.position, session)
 
     column = api.db.Column(board_id=board.id, **column_create.model_dump())
     session.add(column)
@@ -53,23 +53,22 @@ async def create_column(
 
 @router.get("/columns/{column_id}", response_model=api.db.ColumnPublic)
 async def get_column(
-    column: api.dependencies.ColumnDep,
+    board_and_column: api.dependencies.BoardColumnDep,
 ):
+    _, column = board_and_column
     return column
 
 
 @router.patch("/columns/{column_id}", response_model=api.db.ColumnPublic)
 async def update_column(
-    column: api.dependencies.ColumnDep,
+    board_and_column: api.dependencies.BoardColumnDep,
     column_update: api.db.ColumnUpdate,
     session: api.dependencies.SessionDep,
 ):
-    board = session.get(api.db.Board, column.board_id)
-    if board is None:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Internal Server Error")
+    board, column = board_and_column
 
-    if column_update.position is not None:
-        validate_arguments(board, column_update.position, session)
+    if column_update.position is not None and column_update.position != column.position:
+        validate_position(board, column_update.position, session)
 
     column.sqlmodel_update(column_update.model_dump(exclude_unset=True))
     session.add(column)
@@ -81,8 +80,9 @@ async def update_column(
 
 @router.delete("/columns/{column_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_column(
-    column: api.dependencies.ColumnDep,
+    board_and_column: api.dependencies.BoardColumnDep,
     session: api.dependencies.SessionDep,
 ) -> None:
+    _, column = board_and_column
     session.delete(column)
     session.commit()
