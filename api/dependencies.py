@@ -86,8 +86,8 @@ def user_get_board(board_id: int, current_user: CurrentUserDep, session: Session
     return board
 
 
-BoardOwnerDep = Annotated[api.db.Board, Depends(owner_get_board)]
-BoardUserDep = Annotated[api.db.Board, Depends(user_get_board)]
+BoardOwnerAccessDep = Annotated[api.db.Board, Depends(owner_get_board)]
+BoardCollaboratorAccessDep = Annotated[api.db.Board, Depends(user_get_board)]
 
 # --- Column ---
 

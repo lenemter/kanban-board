@@ -62,14 +62,14 @@ async def create_board(
 
 @router.get("/boards/{board_id}", response_model=api.db.BoardPublic)
 async def get_board(
-    board: api.dependencies.BoardUserDep,
+    board: api.dependencies.BoardCollaboratorAccessDep,
 ):
     return board
 
 
 @router.patch("/boards/{board_id}", response_model=api.db.BoardPublic)
 async def update_board(
-    board: api.dependencies.BoardOwnerDep,
+    board: api.dependencies.BoardOwnerAccessDep,
     board_update: api.db.BoardUpdate,
     session: api.dependencies.SessionDep,
 ):
@@ -83,7 +83,7 @@ async def update_board(
 
 @router.delete("/boards/{board_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_board(
-    board: api.dependencies.BoardOwnerDep,
+    board: api.dependencies.BoardOwnerAccessDep,
     session: api.dependencies.SessionDep,
 ) -> None:
     session.delete(board)
@@ -92,7 +92,7 @@ async def delete_board(
 
 @router.get("/boards/{board_id}/users/", response_model=list[api.db.UserPublic])
 async def get_users(
-    board: api.dependencies.BoardUserDep,
+    board: api.dependencies.BoardCollaboratorAccessDep,
     current_user: api.dependencies.CurrentUserDep,
     session: api.dependencies.SessionDep,
 ):
@@ -111,7 +111,7 @@ async def get_users(
 
 @router.post("/boards/{board_id}/users/", status_code=status.HTTP_201_CREATED)
 async def add_user(
-    board: api.dependencies.BoardOwnerDep,
+    board: api.dependencies.BoardOwnerAccessDep,
     user_id: int,
     session: api.dependencies.SessionDep,
 ) -> api.db.BoardUserAccess:
@@ -144,7 +144,7 @@ async def add_user(
 
 @router.delete("/boards/{board_id}/users/", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_user(
-    board: api.dependencies.BoardOwnerDep,
+    board: api.dependencies.BoardOwnerAccessDep,
     user_id: int,
     session: api.dependencies.SessionDep,
 ) -> None:

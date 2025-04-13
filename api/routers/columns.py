@@ -23,7 +23,7 @@ def validate_position(board: api.db.Board, new_position: int, session: Session):
 
 @router.get("/boards/{board_id}/columns/", response_model=list[api.db.ColumnPublic])
 async def get_columns(
-    board: api.dependencies.BoardUserDep,
+    board: api.dependencies.BoardCollaboratorAccessDep,
     session: api.dependencies.SessionDep,
 ):
     return list(
@@ -37,7 +37,7 @@ async def get_columns(
 
 @router.post("/boards/{board_id}/columns/", status_code=status.HTTP_201_CREATED, response_model=api.db.ColumnPublic)
 async def create_column(
-    board: api.dependencies.BoardUserDep,
+    board: api.dependencies.BoardCollaboratorAccessDep,
     column_create: api.db.ColumnCreate,
     session: api.dependencies.SessionDep,
 ):
