@@ -90,10 +90,29 @@ async def delete_board(
     session.commit()
 
 
-@router.post("/boards/{board_id}/add_user/", status_code=status.HTTP_201_CREATED)
+@router.get("/boards/{board_id}/users/", response_model=list[api.db.UserPublic])
+async def get_users(
+    board: api.dependencies.BoardUserDep,
+    current_user: api.dependencies.CurrentUserDep,
+    session: api.dependencies.SessionDep,
+):
+    board_user_accesses = session.exec(
+        select(api.db.BoardUserAccess).where(
+            api.db.BoardUserAccess.board_id == board.id
+        )
+    ).all()
+
+    result: list[Any] = [current_user]
+    for board_user_access in board_user_accesses:
+        result.append(session.get(api.db.User, board_user_access.user_id))
+
+    return result
+
+
+@router.post("/boards/{board_id}/users/", status_code=status.HTTP_201_CREATED)
 async def add_user(
     board: api.dependencies.BoardOwnerDep,
-    user_id: str,
+    user_id: int,
     session: api.dependencies.SessionDep,
 ) -> api.db.BoardUserAccess:
     user = session.get(api.db.User, user_id)
@@ -123,20 +142,28 @@ async def add_user(
     return board_user_access
 
 
-@router.get("/boards/{board_id}/users/", response_model=list[api.db.UserPublic])
-async def get_users(
-    board: api.dependencies.BoardUserDep,
-    current_user: api.dependencies.CurrentUserDep,
+@router.delete("/boards/{board_id}/users/", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_user(
+    board: api.dependencies.BoardOwnerDep,
+    user_id: int,
     session: api.dependencies.SessionDep,
-):
-    board_user_accesses = session.exec(
+) -> None:
+    user = session.get(api.db.User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    if board.owner_id == user_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Can't remove owner from the board")
+
+    board_user_access = session.exec(
         select(api.db.BoardUserAccess).where(
-            api.db.BoardUserAccess.board_id == board.id
+            api.db.BoardUserAccess.board_id == board.id,
+            api.db.BoardUserAccess.user_id == user_id
         )
-    ).all()
+    ).first()
 
-    result: list[Any] = [current_user]
-    for board_user_access in board_user_accesses:
-        result.append(session.get(api.db.User, board_user_access.user_id))
+    if board_user_access is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This user doesn't have access to the board")
 
-    return result
+    session.delete(board_user_access)
+    session.commit()
