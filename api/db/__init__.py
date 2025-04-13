@@ -5,4 +5,4 @@ from .models.column import Column, ColumnCreate, ColumnPublic, ColumnUpdate
 from .models.task import Task, TaskCreate, TaskPublic, TaskUpdate
 from .models.task_log import TaskLog,  TaskLogPublic
 from .models.user import User, UserFromDB, UserPublic, UserCreate, UserUpdate
-from .utils import get_user, get_boards
+from .utils import get_user
