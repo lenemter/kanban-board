@@ -1,5 +1,7 @@
 from sqlmodel import Field, SQLModel
 
+from .unset_type import Unset, UnsetType
+
 
 class ColumnBase(SQLModel):
     position: int = Field()
@@ -20,5 +22,5 @@ class ColumnCreate(ColumnBase):
 
 
 class ColumnUpdate(SQLModel):
-    position: int | None = None
-    name: str | None = None
+    position: UnsetType | int = Unset
+    name: UnsetType | str = Unset

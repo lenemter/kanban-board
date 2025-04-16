@@ -1,5 +1,7 @@
 from sqlmodel import Field, SQLModel
 
+from .unset_type import Unset, UnsetType
+
 
 class BoardBase(SQLModel):
     name: str = Field()
@@ -20,4 +22,4 @@ class BoardCreate(BoardBase):
 
 
 class BoardUpdate(SQLModel):
-    name: str | None = None
+    name: UnsetType | str = Unset

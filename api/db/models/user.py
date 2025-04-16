@@ -1,5 +1,7 @@
 from sqlmodel import Field, SQLModel
 
+from .unset_type import Unset, UnsetType
+
 
 class UserBase(SQLModel):
     name: str = Field()
@@ -21,5 +23,5 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(SQLModel):
-    name: str | None = None
-    password: str | None = None
+    name: UnsetType | str = Unset
+    password: UnsetType | str = Unset

@@ -2,6 +2,8 @@ from datetime import datetime
 
 from sqlmodel import Field, SQLModel
 
+from .unset_type import Unset, UnsetType
+
 
 class TaskBase(SQLModel):
     position: int = Field()
@@ -28,7 +30,7 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(SQLModel):
-    position: int | None = None
-    name: str | None = None
-    description: str | None = None
-    assignee_id: int | None = None
+    position: UnsetType | int = Unset
+    name: UnsetType | str = Unset
+    description: UnsetType | str | None = Unset
+    assignee_id: UnsetType | int | None = Unset
