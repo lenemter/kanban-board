@@ -22,7 +22,7 @@ async def edit_user_me(
 ):
     to_update = user_update.model_dump(exclude_unset=True, exclude={"password"})
 
-    if user_update.password is not None:
+    if not isinstance(user_update.password, api.db.UnsetType):
         to_update["hashed_password"] = api.utils.get_password_hash(user_update.password)
 
     current_user.sqlmodel_update(to_update)

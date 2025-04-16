@@ -21,13 +21,18 @@ def validate_new_position(column: api.db.Column, new_position: int, session: Ses
             raise HTTPException(status.HTTP_409_CONFLICT, "This position is already taken")
 
 
-def validate_new_assignee(board: api.db.Board, assignee_id: int, session: Session):
+def validate_new_assignee(board: api.db.Board, assignee_id: int | None, session: Session) -> api.db.User | None:
+    if assignee_id is None:
+        return None
+
     assigned_user = session.get(api.db.User, assignee_id)
     if assigned_user is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "This user doesn't exist")
 
     if not api.dependencies.check_user_access(assigned_user, board):
         raise HTTPException(status.HTTP_409_CONFLICT, "This user doesn't have access to this board")
+
+    return assigned_user
 
 
 @router.get("/columns/{column_id}/tasks/", response_model=list[api.db.TaskPublic])
@@ -55,7 +60,7 @@ async def add_task(
     board, column = board_and_column
 
     validate_new_position(column, task_create.position, session)
-    if task_create.assignee_id is not None:
+    if task_create.assignee_id is not api.db.Unset:
         validate_new_assignee(board, task_create.assignee_id, session)
 
     task = api.db.Task(column_id=column.id, created_by=current_user.id, **task_create.model_dump())
@@ -82,10 +87,33 @@ async def update_task(
 ):
     board, column, task = board_column_and_task
 
-    if task_update.position is not None and task_update.position != task.position:
+    if not isinstance(task_update.position, api.db.UnsetType) and task_update.position != task.position:
         validate_new_position(column, task_update.position, session)
-    if task_update.assignee_id is not None:
-        validate_new_assignee(board, task_update.assignee_id, session)
+
+    if not isinstance(task_update.name, api.db.UnsetType):
+        rename_message = api.db.TaskLog(
+            task_id=task.id,
+            content=f"~~{task.name}~~ {task_update.name}",
+        )
+        session.add(rename_message)
+
+    if not isinstance(task_update.assignee_id, api.db.UnsetType):
+        if task.assignee_id is not None:
+            old_assigned_user = session.get(api.db.User, task.assignee_id)
+            if old_assigned_user is not None:
+                removed_assignee_message = api.db.TaskLog(
+                    task_id=task.id,
+                    content=f"Unassigned {old_assigned_user.name}"
+                )
+                session.add(removed_assignee_message)
+
+        new_assigned_user = validate_new_assignee(board, task_update.assignee_id, session)
+        if new_assigned_user is not None:
+            new_assignee_message = api.db.TaskLog(
+                task_id=task.id,
+                content=f"Assigned {new_assigned_user.name}",
+            )
+            session.add(new_assignee_message)
 
     task.sqlmodel_update(task_update.model_dump(exclude_unset=True))
     session.add(task)
@@ -103,3 +131,17 @@ async def delete_task(
     _, _, task = board_column_and_task
     session.delete(task)
     session.commit()
+
+
+@router.get("/tasks/{task_id}/logs/", response_model=list[api.db.TaskLogPublic])
+async def get_logs(
+    board_column_and_task: api.dependencies.BoardColumnTaskDep,
+    session: api.dependencies.SessionDep,
+):
+    _, _, task = board_column_and_task
+    return list(
+        session.exec(
+            select(api.db.TaskLog)
+            .where(api.db.TaskLog.task_id == task.id)
+        )
+    )
