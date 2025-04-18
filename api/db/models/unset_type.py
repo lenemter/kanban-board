@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Union
 
 import pydantic
 import pydantic_core
@@ -14,8 +14,10 @@ class UnsetType:
         return pydantic_core.core_schema.no_info_plain_validator_function(cls._validate)
 
     @classmethod
-    def _validate(cls, value: Any) -> "UnsetType":
-        if value is Unset:
+    def _validate(cls, value: Any) -> Union["UnsetType", None]:
+        if value is None:
+            return None
+        if isinstance(value, UnsetType):
             return value
         raise ValueError("This field must be Unset")
 

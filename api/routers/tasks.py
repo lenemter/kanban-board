@@ -1,10 +1,21 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 import api.db
 import api.dependencies
 
 router = APIRouter(tags=["tasks"])
+
+
+def validate_new_column(board: api.db.Board, new_column_id: int, session: Session) -> api.db.Column:
+    new_column = session.get(api.db.Column, new_column_id)
+    if new_column is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Column not found")
+
+    if new_column.board_id != board.id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Cannot move tasks between boards")
+
+    return new_column
 
 
 def validate_new_position(column: api.db.Column, new_position: int, session: Session):
@@ -39,12 +50,20 @@ def validate_new_assignee(board: api.db.Board, assignee_id: int | None, session:
 async def get_tasks(
     board_and_column: api.dependencies.BoardColumnDep,
     session: api.dependencies.SessionDep,
+    filter: api.db.TaskFilter = Depends(),
 ):
     _, column = board_and_column
+
+    if isinstance(filter.assignee_id, str) and filter.assignee_id == "null":
+        filter.assignee_id = None
+
+    model_dump = {k: v for k, v in filter.model_dump(exclude_unset=True).items() if not isinstance(v, api.db.UnsetType)}
+
     return list(
         session.exec(
             select(api.db.Task).where(
-                api.db.Task.column_id == column.id
+                api.db.Task.column_id == column.id,
+                *[getattr(api.db.Task, field_name) == value for field_name, value in model_dump.items()]
             )
         ).all()
     )
@@ -86,6 +105,15 @@ async def update_task(
     session: api.dependencies.SessionDep,
 ):
     board, column, task = board_column_and_task
+
+    if not isinstance(task_update.column_id, api.db.UnsetType):
+        new_column = validate_new_column(board, task_update.column_id, session)
+
+        move_message = api.db.TaskLog(
+            task_id=task.id,
+            content=f"Moved from {column.name} to {new_column.name}",
+        )
+        session.add(move_message)
 
     if not isinstance(task_update.position, api.db.UnsetType) and task_update.position != task.position:
         validate_new_position(column, task_update.position, session)

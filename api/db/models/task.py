@@ -30,7 +30,13 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(SQLModel):
+    column_id: UnsetType | int = Unset
     position: UnsetType | int = Unset
     name: UnsetType | str = Unset
     description: UnsetType | str | None = Unset
     assignee_id: UnsetType | int | None = Unset
+
+
+class TaskFilter(SQLModel):
+    assignee_id: UnsetType | int | str | None = Unset
+    created_by: UnsetType | int = Unset
