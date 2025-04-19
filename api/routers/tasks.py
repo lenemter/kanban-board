@@ -54,10 +54,10 @@ async def get_tasks(
 ):
     _, column = board_and_column
 
-    if isinstance(filter.assignee_id, str) and filter.assignee_id == "null":
+    if filter.assignee_id == "null":
         filter.assignee_id = None
 
-    model_dump = {k: v for k, v in filter.model_dump(exclude_unset=True).items() if not isinstance(v, api.db.UnsetType)}
+    model_dump = {k: v for k, v in filter.model_dump().items() if not isinstance(v, api.db.UnsetType)}
 
     return list(
         session.exec(
