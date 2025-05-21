@@ -50,24 +50,18 @@ def validate_new_assignee(board: api.db.Board, assignee_id: int | None, session:
 @router.get("/columns/{column_id}/tasks/", response_model=list[api.schemas.TaskPublic])
 async def get_tasks(
     board_and_column: api.dependencies.BoardColumnDep,
-    session: api.dependencies.SessionDep,
     filter: api.schemas.TaskFilter = Depends(),
 ):
     _, column = board_and_column
 
+    # HTTP cannot serialize null value, so treat string "null" as null value
     if filter.assignee_id == "null":
         filter.assignee_id = None
 
+    # model_dump(exclude_unset=True) is broken with Depends()
     model_dump = {k: v for k, v in filter.model_dump().items() if not isinstance(v, api.schemas.UnsetType)}
 
-    return list(
-        session.exec(
-            select(api.db.Task).where(
-                api.db.Task.column_id == column.id,
-                *[getattr(api.db.Task, field_name) == value for field_name, value in model_dump.items()]
-            )
-        ).all()
-    )
+    return api.db.get_tasks(column, model_dump)
 
 
 @router.post("/columns/{column_id}/tasks/", status_code=status.HTTP_201_CREATED, response_model=api.schemas.TaskPublic)
@@ -80,21 +74,13 @@ async def add_task(
     board, column = board_and_column
 
     validate_new_position(column, task_create.position, session)
-    if task_create.assignee_id is not api.schemas.Unset:
-        validate_new_assignee(board, task_create.assignee_id, session)
+    validate_new_assignee(board, task_create.assignee_id, session)
 
-    task = api.db.Task(column_id=column.id, created_by=current_user.id, **task_create.model_dump())
-    session.add(task)
-    session.commit()
-    session.refresh(task)
-
-    return task
+    return api.db.create_task(column_id=column.id, created_by=current_user.id, **task_create.model_dump())
 
 
 @router.get("/tasks/{task_id}", response_model=api.schemas.TaskPublic)
-async def get_task(
-    board_column_and_task: api.dependencies.BoardColumnTaskDep,
-):
+async def get_task(board_column_and_task: api.dependencies.BoardColumnTaskDep):
     _, _, task = board_column_and_task
     return task
 
@@ -107,70 +93,48 @@ async def update_task(
 ):
     board, column, task = board_column_and_task
 
-    if not isinstance(task_update.column_id, api.schemas.UnsetType):
+    if not isinstance(task_update.column_id, api.schemas.UnsetType) and task.column_id != task_update.column_id:
         new_column = validate_new_column(board, task_update.column_id, session)
 
-        move_message = api.db.TaskLog(
-            task_id=task.id,
+        api.db.create_task_log(
+            task,
             content=f"Moved from {column.name} to {new_column.name}",
         )
-        session.add(move_message)
 
     if not isinstance(task_update.position, api.schemas.UnsetType) and task_update.position != task.position:
         validate_new_position(column, task_update.position, session)
 
-    if not isinstance(task_update.name, api.schemas.UnsetType):
-        rename_message = api.db.TaskLog(
-            task_id=task.id,
+    if not isinstance(task_update.name, api.schemas.UnsetType) and task.name != task_update.name:
+        api.db.create_task_log(
+            task,
             content=f"~~{task.name}~~ {task_update.name}",
         )
-        session.add(rename_message)
 
-    if not isinstance(task_update.assignee_id, api.schemas.UnsetType):
-        if task.assignee_id is not None:
-            old_assigned_user = session.get(api.db.User, task.assignee_id)
-            if old_assigned_user is not None:
-                removed_assignee_message = api.db.TaskLog(
-                    task_id=task.id,
-                    content=f"Unassigned {old_assigned_user.name}"
-                )
-                session.add(removed_assignee_message)
+    if not isinstance(task_update.assignee_id, api.schemas.UnsetType) and task.assignee_id != task_update.assignee_id:
+        old_assigned_user = api.db.get_user_by_id(task.assignee_id)
+        if old_assigned_user is not None:
+            api.db.create_task_log(
+                task,
+                content=f"Unassigned {old_assigned_user.name}"
+            )
 
         new_assigned_user = validate_new_assignee(board, task_update.assignee_id, session)
         if new_assigned_user is not None:
-            new_assignee_message = api.db.TaskLog(
-                task_id=task.id,
+            api.db.create_task_log(
+                task,
                 content=f"Assigned {new_assigned_user.name}",
             )
-            session.add(new_assignee_message)
 
-    task.sqlmodel_update(task_update.model_dump(exclude_unset=True))
-    session.add(task)
-    session.commit()
-    session.refresh(task)
-
-    return task
+    return api.db.update_task(task, task_update.model_dump(exclude_unset=True))
 
 
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task(
-    board_column_and_task: api.dependencies.BoardColumnTaskDep,
-    session: api.dependencies.SessionDep,
-):
+async def delete_task(board_column_and_task: api.dependencies.BoardColumnTaskDep):
     _, _, task = board_column_and_task
-    session.delete(task)
-    session.commit()
+    api.db.delete_task(task)
 
 
 @router.get("/tasks/{task_id}/logs/", response_model=list[api.schemas.TaskLogPublic])
-async def get_logs(
-    board_column_and_task: api.dependencies.BoardColumnTaskDep,
-    session: api.dependencies.SessionDep,
-):
+async def get_logs(board_column_and_task: api.dependencies.BoardColumnTaskDep):
     _, _, task = board_column_and_task
-    return list(
-        session.exec(
-            select(api.db.TaskLog)
-            .where(api.db.TaskLog.task_id == task.id)
-        )
-    )
+    return api.db.get_task_logs(task)

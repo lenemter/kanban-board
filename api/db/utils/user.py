@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 # "User" | None doesn't work even in python 3.13 ¯\_(ツ)_/¯
-def get_user_by_id(user_id: int) -> Union["User", None]:
+def get_user_by_id(user_id: int | None) -> Union["User", None]:
     from .. import engine, User
 
     with Session(engine) as session:
