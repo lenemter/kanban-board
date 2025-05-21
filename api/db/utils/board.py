@@ -46,11 +46,11 @@ def create_board(**kwargs) -> Board:
         return new_board
 
 
-def update_board(board: Board, **kwargs) -> Board:
+def update_board(board: Board, update: dict[str, Any]) -> Board:
     from .. import engine
 
     with Session(engine) as session:
-        board.sqlmodel_update(**kwargs)
+        board.sqlmodel_update(update)
         session.add(board)
         session.commit()
         session.refresh(board)

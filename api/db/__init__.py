@@ -15,4 +15,5 @@ from .utils.board import (
     add_user,
     remove_user,
 )
+from .utils.columns import get_columns, create_column, update_column, delete_column
 from .utils.user import get_user_by_id, get_user_by_username

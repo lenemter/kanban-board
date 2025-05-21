@@ -29,7 +29,7 @@ async def get_board(board: api.dependencies.BoardCollaboratorAccessDep):
 
 @router.patch("/boards/{board_id}", response_model=api.schemas.BoardPublic)
 async def update_board(board: api.dependencies.BoardOwnerAccessDep, board_update: api.schemas.BoardUpdate):
-    return api.db.update_board(board, **board_update.model_dump(exclude_unset=True))
+    return api.db.update_board(board, board_update.model_dump(exclude_unset=True))
 
 
 @router.delete("/boards/{board_id}", status_code=status.HTTP_204_NO_CONTENT)

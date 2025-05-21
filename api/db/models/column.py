@@ -6,5 +6,3 @@ class Column(SQLModel, table=True):
     board_id: int = Field(foreign_key="board.id", ondelete="CASCADE")
     position: int = Field()
     name: str = Field()
-
-

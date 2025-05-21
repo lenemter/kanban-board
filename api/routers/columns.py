@@ -23,17 +23,8 @@ def validate_position(board: api.db.Board, new_position: int, session: Session):
 
 
 @router.get("/boards/{board_id}/columns/", response_model=list[api.schemas.ColumnPublic])
-async def get_columns(
-    board: api.dependencies.BoardCollaboratorAccessDep,
-    session: api.dependencies.SessionDep,
-):
-    return list(
-        session.exec(
-            select(api.db.Column).where(
-                api.db.Column.board_id == board.id
-            )
-        ).all()
-    )
+async def get_columns(board: api.dependencies.BoardCollaboratorAccessDep):
+    return api.db.get_columns(board)
 
 
 @router.post(
@@ -48,12 +39,7 @@ async def create_column(
 ):
     validate_position(board, column_create.position, session)
 
-    column = api.db.Column(board_id=board.id, **column_create.model_dump())
-    session.add(column)
-    session.commit()
-    session.refresh(column)
-
-    return column
+    return api.db.create_column(board_id=board.id, **column_create.model_dump())
 
 
 @router.get("/columns/{column_id}", response_model=api.schemas.ColumnPublic)
@@ -72,15 +58,10 @@ async def update_column(
 ):
     board, column = board_and_column
 
-    if column_update.position is not None and column_update.position != column.position:
+    if not isinstance(column_update.position, api.schemas.UnsetType) and column_update.position != column.position:
         validate_position(board, column_update.position, session)
 
-    column.sqlmodel_update(column_update.model_dump(exclude_unset=True))
-    session.add(column)
-    session.commit()
-    session.refresh(column)
-
-    return column
+    return api.db.update_column(column, column_update.model_dump(exclude_unset=True))
 
 
 @router.delete("/columns/{column_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -89,5 +70,4 @@ async def delete_column(
     session: api.dependencies.SessionDep,
 ) -> None:
     _, column = board_and_column
-    session.delete(column)
-    session.commit()
+    api.db.delete_column(column)
