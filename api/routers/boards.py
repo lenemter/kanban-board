@@ -4,11 +4,12 @@ from sqlmodel import select
 
 import api.db
 import api.dependencies
+import api.schemas
 
 router = APIRouter(tags=["boards"])
 
 
-@router.get("/boards/", response_model=list[api.db.BoardPublic])
+@router.get("/boards/", response_model=list[api.schemas.BoardPublic])
 async def get_boards(
     current_user: api.dependencies.CurrentUserDep,
     session: api.dependencies.SessionDep
@@ -22,7 +23,7 @@ async def get_boards(
     )
 
 
-@router.get("/boards/shared/", response_model=list[api.db.BoardPublic])
+@router.get("/boards/shared/", response_model=list[api.schemas.BoardPublic])
 async def get_shared_boards(
     current_user: api.dependencies.CurrentUserDep,
     session: api.dependencies.SessionDep
@@ -46,10 +47,10 @@ async def get_shared_boards(
     return owned + shared
 
 
-@router.post("/boards/", status_code=status.HTTP_201_CREATED, response_model=api.db.BoardPublic)
+@router.post("/boards/", status_code=status.HTTP_201_CREATED, response_model=api.schemas.BoardPublic)
 async def create_board(
     current_user: api.dependencies.CurrentUserDep,
-    board_create: api.db.BoardCreate,
+    board_create: api.schemas.BoardCreate,
     session: api.dependencies.SessionDep,
 ):
     new_board = api.db.Board(owner_id=current_user.id, **board_create.model_dump())
@@ -60,17 +61,17 @@ async def create_board(
     return new_board
 
 
-@router.get("/boards/{board_id}", response_model=api.db.BoardPublic)
+@router.get("/boards/{board_id}", response_model=api.schemas.BoardPublic)
 async def get_board(
     board: api.dependencies.BoardCollaboratorAccessDep,
 ):
     return board
 
 
-@router.patch("/boards/{board_id}", response_model=api.db.BoardPublic)
+@router.patch("/boards/{board_id}", response_model=api.schemas.BoardPublic)
 async def update_board(
     board: api.dependencies.BoardOwnerAccessDep,
-    board_update: api.db.BoardUpdate,
+    board_update: api.schemas.BoardUpdate,
     session: api.dependencies.SessionDep,
 ):
     board.sqlmodel_update(board_update.model_dump(exclude_unset=True))
@@ -90,7 +91,7 @@ async def delete_board(
     session.commit()
 
 
-@router.get("/boards/{board_id}/users/", response_model=list[api.db.UserPublic])
+@router.get("/boards/{board_id}/users/", response_model=list[api.schemas.UserPublic])
 async def get_users(
     board: api.dependencies.BoardCollaboratorAccessDep,
     current_user: api.dependencies.CurrentUserDep,
@@ -109,12 +110,16 @@ async def get_users(
     return result
 
 
-@router.post("/boards/{board_id}/users/", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/boards/{board_id}/users/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api.schemas.BoardUserAccessPublic
+)
 async def add_user(
     board: api.dependencies.BoardOwnerAccessDep,
     user_id: int,
     session: api.dependencies.SessionDep,
-) -> api.db.BoardUserAccess:
+):
     user = session.get(api.db.User, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")

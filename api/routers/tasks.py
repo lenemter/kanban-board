@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 
 import api.db
 import api.dependencies
+import api.schemas
 
 router = APIRouter(tags=["tasks"])
 
@@ -46,18 +47,18 @@ def validate_new_assignee(board: api.db.Board, assignee_id: int | None, session:
     return assigned_user
 
 
-@router.get("/columns/{column_id}/tasks/", response_model=list[api.db.TaskPublic])
+@router.get("/columns/{column_id}/tasks/", response_model=list[api.schemas.TaskPublic])
 async def get_tasks(
     board_and_column: api.dependencies.BoardColumnDep,
     session: api.dependencies.SessionDep,
-    filter: api.db.TaskFilter = Depends(),
+    filter: api.schemas.TaskFilter = Depends(),
 ):
     _, column = board_and_column
 
     if filter.assignee_id == "null":
         filter.assignee_id = None
 
-    model_dump = {k: v for k, v in filter.model_dump().items() if not isinstance(v, api.db.UnsetType)}
+    model_dump = {k: v for k, v in filter.model_dump().items() if not isinstance(v, api.schemas.UnsetType)}
 
     return list(
         session.exec(
@@ -69,17 +70,17 @@ async def get_tasks(
     )
 
 
-@router.post("/columns/{column_id}/tasks/", status_code=status.HTTP_201_CREATED, response_model=api.db.TaskPublic)
+@router.post("/columns/{column_id}/tasks/", status_code=status.HTTP_201_CREATED, response_model=api.schemas.TaskPublic)
 async def add_task(
     board_and_column: api.dependencies.BoardColumnDep,
-    task_create: api.db.TaskCreate,
+    task_create: api.schemas.TaskCreate,
     current_user: api.dependencies.CurrentUserDep,
     session: api.dependencies.SessionDep,
 ):
     board, column = board_and_column
 
     validate_new_position(column, task_create.position, session)
-    if task_create.assignee_id is not api.db.Unset:
+    if task_create.assignee_id is not api.schemas.Unset:
         validate_new_assignee(board, task_create.assignee_id, session)
 
     task = api.db.Task(column_id=column.id, created_by=current_user.id, **task_create.model_dump())
@@ -90,7 +91,7 @@ async def add_task(
     return task
 
 
-@router.get("/tasks/{task_id}", response_model=api.db.TaskPublic)
+@router.get("/tasks/{task_id}", response_model=api.schemas.TaskPublic)
 async def get_task(
     board_column_and_task: api.dependencies.BoardColumnTaskDep,
 ):
@@ -98,15 +99,15 @@ async def get_task(
     return task
 
 
-@router.patch("/tasks/{task_id}", response_model=api.db.TaskPublic)
+@router.patch("/tasks/{task_id}", response_model=api.schemas.TaskPublic)
 async def update_task(
     board_column_and_task: api.dependencies.BoardColumnTaskDep,
-    task_update: api.db.TaskUpdate,
+    task_update: api.schemas.TaskUpdate,
     session: api.dependencies.SessionDep,
 ):
     board, column, task = board_column_and_task
 
-    if not isinstance(task_update.column_id, api.db.UnsetType):
+    if not isinstance(task_update.column_id, api.schemas.UnsetType):
         new_column = validate_new_column(board, task_update.column_id, session)
 
         move_message = api.db.TaskLog(
@@ -115,17 +116,17 @@ async def update_task(
         )
         session.add(move_message)
 
-    if not isinstance(task_update.position, api.db.UnsetType) and task_update.position != task.position:
+    if not isinstance(task_update.position, api.schemas.UnsetType) and task_update.position != task.position:
         validate_new_position(column, task_update.position, session)
 
-    if not isinstance(task_update.name, api.db.UnsetType):
+    if not isinstance(task_update.name, api.schemas.UnsetType):
         rename_message = api.db.TaskLog(
             task_id=task.id,
             content=f"~~{task.name}~~ {task_update.name}",
         )
         session.add(rename_message)
 
-    if not isinstance(task_update.assignee_id, api.db.UnsetType):
+    if not isinstance(task_update.assignee_id, api.schemas.UnsetType):
         if task.assignee_id is not None:
             old_assigned_user = session.get(api.db.User, task.assignee_id)
             if old_assigned_user is not None:
@@ -161,7 +162,7 @@ async def delete_task(
     session.commit()
 
 
-@router.get("/tasks/{task_id}/logs/", response_model=list[api.db.TaskLogPublic])
+@router.get("/tasks/{task_id}/logs/", response_model=list[api.schemas.TaskLogPublic])
 async def get_logs(
     board_column_and_task: api.dependencies.BoardColumnTaskDep,
     session: api.dependencies.SessionDep,

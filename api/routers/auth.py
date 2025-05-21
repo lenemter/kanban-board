@@ -9,6 +9,7 @@ import pydantic
 
 import api.db
 import api.dependencies
+import api.schemas
 import api.utils
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -63,7 +64,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    user_create: api.db.UserCreate,
+    user_create: api.schemas.UserCreate,
     session: api.dependencies.SessionDep,
 ) -> Token:
     if api.db.get_user(username=user_create.username) is not None:
