@@ -27,8 +27,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def authenticate_user(username: str, password: str) -> api.db.User | None:
-    user = api.db.get_user(username)
-    if not user:
+    user = api.db.get_user_by_username(username)
+    if user is None:
         return None
     if not verify_password(password, user.hashed_password):
         return None
@@ -67,7 +67,7 @@ async def register(
     user_create: api.schemas.UserCreate,
     session: api.dependencies.SessionDep,
 ) -> Token:
-    if api.db.get_user(username=user_create.username) is not None:
+    if api.db.get_user_by_username(user_create.username) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Username already taken")
 
     new_user = api.db.User(

@@ -37,7 +37,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> api
     except jwt.InvalidTokenError:
         raise credentials_exception
 
-    user = api.db.get_user(username=username)
+    user = api.db.get_user_by_username(username)
     if user is None:
         raise credentials_exception
     if user.id is None:
