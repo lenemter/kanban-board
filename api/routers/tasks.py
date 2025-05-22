@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 import api.db
 import api.dependencies
@@ -19,25 +19,20 @@ def validate_new_column(board: api.db.Board, new_column_id: int, session: Sessio
     return new_column
 
 
-def validate_new_position(column: api.db.Column, new_position: int, session: Session):
+def validate_new_position(column: api.db.Column, new_position: int):
     if new_position < 0:
         raise HTTPException(status.HTTP_409_CONFLICT, "Position must be greater or equal 0")
 
-    tasks = session.exec(
-        select(api.db.Task)
-        .where(api.db.Task.column_id == column.id)
-    ).all()
-
-    for task in tasks:
+    for task in api.db.get_tasks(column):
         if task.position == new_position:
             raise HTTPException(status.HTTP_409_CONFLICT, "This position is already taken")
 
 
-def validate_new_assignee(board: api.db.Board, assignee_id: int | None, session: Session) -> api.db.User | None:
+def validate_new_assignee(board: api.db.Board, assignee_id: int | None) -> api.db.User | None:
     if assignee_id is None:
         return None
 
-    assigned_user = session.get(api.db.User, assignee_id)
+    assigned_user = api.db.get_user_by_id(assignee_id)
     if assigned_user is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "This user doesn't exist")
 
@@ -69,12 +64,11 @@ async def add_task(
     board_and_column: api.dependencies.BoardColumnDep,
     task_create: api.schemas.TaskCreate,
     current_user: api.dependencies.CurrentUserDep,
-    session: api.dependencies.SessionDep,
 ):
     board, column = board_and_column
 
-    validate_new_position(column, task_create.position, session)
-    validate_new_assignee(board, task_create.assignee_id, session)
+    validate_new_position(column, task_create.position)
+    validate_new_assignee(board, task_create.assignee_id)
 
     return api.db.create_task(column_id=column.id, created_by=current_user.id, **task_create.model_dump())
 
@@ -102,7 +96,7 @@ async def update_task(
         )
 
     if not isinstance(task_update.position, api.schemas.UnsetType) and task_update.position != task.position:
-        validate_new_position(column, task_update.position, session)
+        validate_new_position(column, task_update.position)
 
     if not isinstance(task_update.name, api.schemas.UnsetType) and task.name != task_update.name:
         api.db.create_task_log(
@@ -118,7 +112,7 @@ async def update_task(
                 content=f"Unassigned {old_assigned_user.name}"
             )
 
-        new_assigned_user = validate_new_assignee(board, task_update.assignee_id, session)
+        new_assigned_user = validate_new_assignee(board, task_update.assignee_id)
         if new_assigned_user is not None:
             api.db.create_task_log(
                 task,

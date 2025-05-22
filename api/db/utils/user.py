@@ -22,7 +22,7 @@ def get_user_by_username(username: str) -> Union["User", None]:
         return session.exec(select(User).where(User.username == username)).first()
 
 
-def register_user(**kwargs) -> User:
+def register_user(**kwargs) -> "User":
     from .. import engine, User
 
     with Session(engine) as session:
@@ -34,7 +34,7 @@ def register_user(**kwargs) -> User:
         return new_user
 
 
-def update_user(user: User, update: dict[str, Any]) -> User:
+def update_user(user: "User", update: dict[str, Any]) -> "User":
     from .. import engine
 
     with Session(engine) as session:

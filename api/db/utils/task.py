@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from .. import Column, Task, TaskLog
 
 
-def get_tasks(column: Column, filter: dict[str, Any]) -> list[Task]:
+def get_tasks(column: "Column", filter: dict[str, Any]) -> list["Task"]:
     from .. import engine, Task
 
     with Session(engine) as session:
@@ -20,7 +20,7 @@ def get_tasks(column: Column, filter: dict[str, Any]) -> list[Task]:
         )
 
 
-def create_task(**kwargs) -> Task:
+def create_task(**kwargs) -> "Task":
     from .. import engine, Task
 
     with Session(engine) as session:
@@ -32,7 +32,7 @@ def create_task(**kwargs) -> Task:
         return new_task
 
 
-def update_task(task: Task, update: dict[str, Any]) -> Task:
+def update_task(task: "Task", update: dict[str, Any]) -> "Task":
     from .. import engine
 
     with Session(engine) as session:
@@ -44,7 +44,7 @@ def update_task(task: Task, update: dict[str, Any]) -> Task:
         return task
 
 
-def delete_task(task: Task) -> None:
+def delete_task(task: "Task") -> None:
     from .. import engine
 
     with Session(engine) as session:
@@ -52,7 +52,7 @@ def delete_task(task: Task) -> None:
         session.commit()
 
 
-def create_task_log(task: Task, **kwargs) -> TaskLog:
+def create_task_log(task: "Task", **kwargs) -> "TaskLog":
     from .. import engine
 
     with Session(engine) as session:
@@ -64,7 +64,7 @@ def create_task_log(task: Task, **kwargs) -> TaskLog:
         return new_task
 
 
-def get_task_logs(task: Task) -> list[TaskLog]:
+def get_task_logs(task: "Task") -> list["TaskLog"]:
     from .. import engine
 
     with Session(engine) as session:

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlmodel import Session, select
 
 import api.db
 import api.dependencies
@@ -8,16 +7,11 @@ import api.schemas
 router = APIRouter(tags=["columns"])
 
 
-def validate_position(board: api.db.Board, new_position: int, session: Session):
+def validate_position(board: api.db.Board, new_position: int):
     if new_position < 0:
         raise HTTPException(status.HTTP_409_CONFLICT, "Position must be greater or equal 0")
 
-    columns = session.exec(
-        select(api.db.Column)
-        .where(api.db.Column.board_id == board.id)
-    ).all()
-
-    for column in columns:
+    for column in api.db.get_columns(board):
         if column.position == new_position:
             raise HTTPException(status.HTTP_409_CONFLICT, "This position is already taken")
 
@@ -32,12 +26,8 @@ async def get_columns(board: api.dependencies.BoardCollaboratorAccessDep):
     status_code=status.HTTP_201_CREATED,
     response_model=api.schemas.ColumnPublic
 )
-async def create_column(
-    board: api.dependencies.BoardCollaboratorAccessDep,
-    column_create: api.schemas.ColumnCreate,
-    session: api.dependencies.SessionDep,
-):
-    validate_position(board, column_create.position, session)
+async def create_column(board: api.dependencies.BoardCollaboratorAccessDep, column_create: api.schemas.ColumnCreate):
+    validate_position(board, column_create.position)
 
     return api.db.create_column(board_id=board.id, **column_create.model_dump())
 
@@ -51,23 +41,16 @@ async def get_column(
 
 
 @router.patch("/columns/{column_id}", response_model=api.schemas.ColumnPublic)
-async def update_column(
-    board_and_column: api.dependencies.BoardColumnDep,
-    column_update: api.schemas.ColumnUpdate,
-    session: api.dependencies.SessionDep,
-):
+async def update_column(board_and_column: api.dependencies.BoardColumnDep, column_update: api.schemas.ColumnUpdate):
     board, column = board_and_column
 
     if not isinstance(column_update.position, api.schemas.UnsetType) and column_update.position != column.position:
-        validate_position(board, column_update.position, session)
+        validate_position(board, column_update.position)
 
     return api.db.update_column(column, column_update.model_dump(exclude_unset=True))
 
 
 @router.delete("/columns/{column_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_column(
-    board_and_column: api.dependencies.BoardColumnDep,
-    session: api.dependencies.SessionDep,
-) -> None:
+async def delete_column(board_and_column: api.dependencies.BoardColumnDep) -> None:
     _, column = board_and_column
     api.db.delete_column(column)

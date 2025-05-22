@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from .. import Board, Column
 
 
-def get_columns(board: Board) -> list[Column]:
+def get_columns(board: "Board") -> list["Column"]:
     from .. import engine, Column
 
     with Session(engine) as session:
@@ -19,7 +19,7 @@ def get_columns(board: Board) -> list[Column]:
         )
 
 
-def create_column(**kwargs) -> Column:
+def create_column(**kwargs) -> "Column":
     from .. import engine, Column
 
     with Session(engine) as session:
@@ -31,7 +31,7 @@ def create_column(**kwargs) -> Column:
         return new_column
 
 
-def update_column(column: Column, update: dict[str, Any]) -> Column:
+def update_column(column: "Column", update: dict[str, Any]) -> "Column":
     from .. import engine
 
     with Session(engine) as session:
@@ -43,7 +43,7 @@ def update_column(column: Column, update: dict[str, Any]) -> Column:
         return column
 
 
-def delete_column(column: Column) -> None:
+def delete_column(column: "Column") -> None:
     from .. import engine
 
     with Session(engine) as session:

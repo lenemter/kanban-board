@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from .. import Board, BoardUserAccess, User
 
 
-def get_owned_boards(user_id: int | None) -> list[Board]:
+def get_owned_boards(user_id: int | None) -> list["Board"]:
     from .. import engine, Board
 
     with Session(engine) as session:
@@ -19,7 +19,7 @@ def get_owned_boards(user_id: int | None) -> list[Board]:
         )
 
 
-def get_shared_boards(user_id: int | None) -> list[Board]:
+def get_shared_boards(user_id: int | None) -> list["Board"]:
     from .. import engine, Board, BoardUserAccess
 
     with Session(engine) as session:
@@ -34,7 +34,7 @@ def get_shared_boards(user_id: int | None) -> list[Board]:
         return get_owned_boards(user_id) + shared
 
 
-def create_board(**kwargs) -> Board:
+def create_board(**kwargs) -> "Board":
     from .. import engine, Board
 
     with Session(engine) as session:
@@ -46,7 +46,7 @@ def create_board(**kwargs) -> Board:
         return new_board
 
 
-def update_board(board: Board, update: dict[str, Any]) -> Board:
+def update_board(board: "Board", update: dict[str, Any]) -> "Board":
     from .. import engine
 
     with Session(engine) as session:
@@ -58,7 +58,7 @@ def update_board(board: Board, update: dict[str, Any]) -> Board:
         return board
 
 
-def delete_board(board: Board) -> None:
+def delete_board(board: "Board") -> None:
     from .. import engine
 
     with Session(engine) as session:
@@ -66,7 +66,7 @@ def delete_board(board: Board) -> None:
         session.commit()
 
 
-def get_users(board: Board) -> list[User]:
+def get_users(board: "Board") -> list["User"]:
     from .. import engine, BoardUserAccess, User
 
     with Session(engine) as session:
@@ -83,7 +83,7 @@ def get_users(board: Board) -> list[User]:
         return result
 
 
-def add_user(board: Board, user_id: int) -> BoardUserAccess:
+def add_user(board: "Board", user_id: int) -> "BoardUserAccess":
     from .. import engine, BoardUserAccess
 
     with Session(engine) as session:
@@ -105,7 +105,7 @@ def add_user(board: Board, user_id: int) -> BoardUserAccess:
         return board_user_access
 
 
-def remove_user(board: Board, user_id: int) -> None:
+def remove_user(board: "Board", user_id: int) -> None:
     from .. import engine, BoardUserAccess
 
     with Session(engine) as session:
