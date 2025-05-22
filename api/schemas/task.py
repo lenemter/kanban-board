@@ -16,7 +16,6 @@ class TaskPublic(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    position: int
     name: str
     description: str | None
     assignee_id: int | None

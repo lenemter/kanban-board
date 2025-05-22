@@ -20,11 +20,11 @@ def get_tasks(column: "Column", filter: dict[str, Any]) -> list["Task"]:
         )
 
 
-def create_task(**kwargs) -> "Task":
+def create_task(column: "Column", **kwargs) -> "Task":
     from .. import engine, Task
 
     with Session(engine) as session:
-        new_task = Task(**kwargs)
+        new_task = Task(column_id=column.id, position=len(get_tasks(column, dict())), **kwargs)
         session.add(new_task)
         session.commit()
         session.refresh(new_task)
@@ -32,28 +32,22 @@ def create_task(**kwargs) -> "Task":
         return new_task
 
 
-def update_task(task: "Task", update: dict[str, Any]) -> "Task":
-    from .. import engine
+def update_task(session: Session, task: "Task", update: dict[str, Any]) -> "Task":
+    task.sqlmodel_update(update)
+    session.add(task)
+    session.commit()
+    session.refresh(task)
 
-    with Session(engine) as session:
-        task.sqlmodel_update(update)
-        session.add(task)
-        session.commit()
-        session.refresh(task)
-
-        return task
+    return task
 
 
-def delete_task(task: "Task") -> None:
-    from .. import engine
-
-    with Session(engine) as session:
-        session.delete(task)
-        session.commit()
+def delete_task(session: Session, task: "Task") -> None:
+    session.delete(task)
+    session.commit()
 
 
 def create_task_log(task: "Task", **kwargs) -> "TaskLog":
-    from .. import engine
+    from .. import engine, TaskLog
 
     with Session(engine) as session:
         new_task = TaskLog(task_id=task.id, **kwargs)
@@ -65,7 +59,7 @@ def create_task_log(task: "Task", **kwargs) -> "TaskLog":
 
 
 def get_task_logs(task: "Task") -> list["TaskLog"]:
-    from .. import engine
+    from .. import engine, TaskLog
 
     with Session(engine) as session:
         return list(

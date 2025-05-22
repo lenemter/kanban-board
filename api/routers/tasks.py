@@ -66,10 +66,9 @@ async def add_task(
 ):
     board, column = board_and_column
 
-    validate_new_position(column, task_create.position)
     validate_new_assignee(board, task_create.assignee_id)
 
-    return api.db.create_task(column_id=column.id, created_by=current_user.id, **task_create.model_dump())
+    return api.db.create_task(column, created_by=current_user.id, **task_create.model_dump())
 
 
 @router.get("/tasks/{task_id}", response_model=api.schemas.TaskPublic)
@@ -79,7 +78,11 @@ async def get_task(board_column_and_task: api.dependencies.BoardColumnTaskDep):
 
 
 @router.patch("/tasks/{task_id}", response_model=api.schemas.TaskPublic)
-async def update_task(board_column_and_task: api.dependencies.BoardColumnTaskDep, task_update: api.schemas.TaskUpdate):
+async def update_task(
+    board_column_and_task: api.dependencies.BoardColumnTaskDep,
+    task_update: api.schemas.TaskUpdate,
+    session: api.dependencies.SessionDep,
+):
     board, column, task = board_column_and_task
 
     if not isinstance(task_update.column_id, api.schemas.UnsetType) and task.column_id != task_update.column_id:
@@ -114,13 +117,16 @@ async def update_task(board_column_and_task: api.dependencies.BoardColumnTaskDep
                 content=f"Assigned {new_assigned_user.name}",
             )
 
-    return api.db.update_task(task, task_update.model_dump(exclude_unset=True))
+    return api.db.update_task(session, task, task_update.model_dump(exclude_unset=True))
 
 
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task(board_column_and_task: api.dependencies.BoardColumnTaskDep):
+async def delete_task(
+    board_column_and_task: api.dependencies.BoardColumnTaskDep,
+    session: api.dependencies.SessionDep,
+):
     _, _, task = board_column_and_task
-    api.db.delete_task(task)
+    api.db.delete_task(session, task)
 
 
 @router.get("/tasks/{task_id}/logs/", response_model=list[api.schemas.TaskLogPublic])

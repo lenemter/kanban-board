@@ -34,13 +34,10 @@ def register_user(**kwargs) -> "User":
         return new_user
 
 
-def update_user(user: "User", update: dict[str, Any]) -> "User":
-    from .. import engine
+def update_user(session: Session, user: "User", update: dict[str, Any]) -> "User":
+    user.sqlmodel_update(update)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
 
-    with Session(engine) as session:
-        user.sqlmodel_update(update)
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-
-        return user
+    return user

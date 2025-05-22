@@ -26,11 +26,11 @@ def get_column_by_id(column_id: int) -> Union["Column", None]:
         return session.get(Column, column_id)
 
 
-def create_column(**kwargs) -> "Column":
+def create_column(board: "Board", **kwargs) -> "Column":
     from .. import engine, Column
 
     with Session(engine) as session:
-        new_column = Column(**kwargs)
+        new_column = Column(board_id=board.id, position=len(get_columns(board)), **kwargs)
         session.add(new_column)
         session.commit()
         session.refresh(new_column)
@@ -38,21 +38,15 @@ def create_column(**kwargs) -> "Column":
         return new_column
 
 
-def update_column(column: "Column", update: dict[str, Any]) -> "Column":
-    from .. import engine
+def update_column(session: Session, column: "Column", update: dict[str, Any]) -> "Column":
+    column.sqlmodel_update(update)
+    session.add(column)
+    session.commit()
+    session.refresh(column)
 
-    with Session(engine) as session:
-        column.sqlmodel_update(update)
-        session.add(column)
-        session.commit()
-        session.refresh(column)
-
-        return column
+    return column
 
 
-def delete_column(column: "Column") -> None:
-    from .. import engine
-
-    with Session(engine) as session:
-        session.delete(column)
-        session.commit()
+def delete_column(session: Session, column: "Column") -> None:
+    session.delete(column)
+    session.commit()

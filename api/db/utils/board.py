@@ -34,11 +34,11 @@ def get_shared_boards(user_id: int | None) -> list["Board"]:
         return get_owned_boards(user_id) + shared
 
 
-def create_board(**kwargs) -> "Board":
+def create_board(owner: "User", **kwargs) -> "Board":
     from .. import engine, Board
 
     with Session(engine) as session:
-        new_board = Board(**kwargs)
+        new_board = Board(owner_id=owner.id, **kwargs)
         session.add(new_board)
         session.commit()
         session.refresh(new_board)
@@ -46,24 +46,18 @@ def create_board(**kwargs) -> "Board":
         return new_board
 
 
-def update_board(board: "Board", update: dict[str, Any]) -> "Board":
-    from .. import engine
+def update_board(session: Session, board: "Board", update: dict[str, Any]) -> "Board":
+    board.sqlmodel_update(update)
+    session.add(board)
+    session.commit()
+    session.refresh(board)
 
-    with Session(engine) as session:
-        board.sqlmodel_update(update)
-        session.add(board)
-        session.commit()
-        session.refresh(board)
-
-        return board
+    return board
 
 
-def delete_board(board: "Board") -> None:
-    from .. import engine
-
-    with Session(engine) as session:
-        session.delete(board)
-        session.commit()
+def delete_board(session: Session, board: "Board") -> None:
+    session.delete(board)
+    session.commit()
 
 
 def get_users(board: "Board") -> list["User"]:

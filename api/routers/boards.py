@@ -17,9 +17,16 @@ async def get_shared_boards(current_user: api.dependencies.CurrentUserDep):
     return api.db.get_shared_boards(current_user.id)
 
 
-@router.post("/boards/", status_code=status.HTTP_201_CREATED, response_model=api.schemas.BoardPublic)
-async def create_board(current_user: api.dependencies.CurrentUserDep, board_create: api.schemas.BoardCreate):
-    return api.db.create_board(owner_id=current_user.id, **board_create.model_dump())
+@router.post(
+    "/boards/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api.schemas.BoardPublic
+)
+async def create_board(
+    current_user: api.dependencies.CurrentUserDep,
+    board_create: api.schemas.BoardCreate
+):
+    return api.db.create_board(current_user, **board_create.model_dump())
 
 
 @router.get("/boards/{board_id}", response_model=api.schemas.BoardPublic)
@@ -28,13 +35,17 @@ async def get_board(board: api.dependencies.BoardCollaboratorAccessDep):
 
 
 @router.patch("/boards/{board_id}", response_model=api.schemas.BoardPublic)
-async def update_board(board: api.dependencies.BoardOwnerAccessDep, board_update: api.schemas.BoardUpdate):
-    return api.db.update_board(board, board_update.model_dump(exclude_unset=True))
+async def update_board(
+    board: api.dependencies.BoardOwnerAccessDep,
+    board_update: api.schemas.BoardUpdate,
+    session: api.dependencies.SessionDep
+):
+    return api.db.update_board(session, board, board_update.model_dump(exclude_unset=True))
 
 
 @router.delete("/boards/{board_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_board(board: api.dependencies.BoardOwnerAccessDep) -> None:
-    api.db.delete_board(board)
+async def delete_board(board: api.dependencies.BoardOwnerAccessDep, session: api.dependencies.SessionDep) -> None:
+    api.db.delete_board(session, board)
 
 
 @router.get("/boards/{board_id}/users/", response_model=list[api.schemas.UserPublic])

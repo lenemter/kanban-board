@@ -10,7 +10,6 @@ class ColumnPublic(BaseModel):
 
 
 class ColumnCreate(BaseModel):
-    position: int
     name: str
 
 
