@@ -15,6 +15,6 @@ from .utils.board import (
     add_user,
     remove_user,
 )
-from .utils.columns import get_columns, create_column, update_column, delete_column
+from .utils.columns import get_columns, get_column_by_id, create_column, update_column, delete_column
 from .utils.task import get_tasks, create_task, update_task, delete_task, get_task_logs, create_task_log
 from .utils.user import get_user_by_id, get_user_by_username, register_user, update_user

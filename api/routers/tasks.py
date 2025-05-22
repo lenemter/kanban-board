@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
 
 import api.db
 import api.dependencies
@@ -8,8 +7,8 @@ import api.schemas
 router = APIRouter(tags=["tasks"])
 
 
-def validate_new_column(board: api.db.Board, new_column_id: int, session: Session) -> api.db.Column:
-    new_column = session.get(api.db.Column, new_column_id)
+def validate_new_column(board: api.db.Board, new_column_id: int) -> api.db.Column:
+    new_column = api.db.get_column_by_id(new_column_id)
     if new_column is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Column not found")
 
@@ -23,7 +22,7 @@ def validate_new_position(column: api.db.Column, new_position: int):
     if new_position < 0:
         raise HTTPException(status.HTTP_409_CONFLICT, "Position must be greater or equal 0")
 
-    for task in api.db.get_tasks(column):
+    for task in api.db.get_tasks(column, dict()):
         if task.position == new_position:
             raise HTTPException(status.HTTP_409_CONFLICT, "This position is already taken")
 
@@ -80,15 +79,11 @@ async def get_task(board_column_and_task: api.dependencies.BoardColumnTaskDep):
 
 
 @router.patch("/tasks/{task_id}", response_model=api.schemas.TaskPublic)
-async def update_task(
-    board_column_and_task: api.dependencies.BoardColumnTaskDep,
-    task_update: api.schemas.TaskUpdate,
-    session: api.dependencies.SessionDep,
-):
+async def update_task(board_column_and_task: api.dependencies.BoardColumnTaskDep, task_update: api.schemas.TaskUpdate):
     board, column, task = board_column_and_task
 
     if not isinstance(task_update.column_id, api.schemas.UnsetType) and task.column_id != task_update.column_id:
-        new_column = validate_new_column(board, task_update.column_id, session)
+        new_column = validate_new_column(board, task_update.column_id)
 
         api.db.create_task_log(
             task,

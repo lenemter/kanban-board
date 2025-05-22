@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 from sqlmodel import Session, select
 
@@ -17,6 +17,13 @@ def get_columns(board: "Board") -> list["Column"]:
                 )
             ).all()
         )
+
+
+def get_column_by_id(column_id: int) -> Union["Column", None]:
+    from .. import engine, Column
+
+    with Session(engine) as session:
+        return session.get(Column, column_id)
 
 
 def create_column(**kwargs) -> "Column":
